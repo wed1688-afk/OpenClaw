@@ -1,2 +1,1 @@
-# OpenClaw
-My OpenClaw projec
+# README
