@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Office</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#127970;</text></svg>">
+<link rel="stylesheet" href="office.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <h1>Agent Office</h1>
+    <span class="sub" id="t-sub">Claude Code 正在做的事，畫成一整層樓的職員</span>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="controls">
+    <span class="conn" id="conn" data-state="connecting">連線中…</span>
+    <select id="lang" aria-label="語言"></select>
+    <button type="button" id="reset-view">重新置中</button>
+  </div>
+</header>
+
+<main>
+  <section class="floor">
+    <canvas id="office" aria-label="等距視角的辦公室樓面，每位職員代表一個正在工作的代理"></canvas>
+    <p class="empty" id="empty" hidden></p>
+    <ul class="legend" id="legend"></ul>
+  </section>
+
+  <aside class="panels">
+    <section class="panel">
+      <h2><span id="t-roster">在場人員</span> <span class="count" id="roster-count"></span></h2>
+      <ul class="roster" id="roster"></ul>
+    </section>
+    <section class="panel">
+      <h2 id="t-tickets">工單板</h2>
+      <ul class="tickets" id="tickets"></ul>
+    </section>
+    <section class="panel grow">
+      <h2 id="t-log">活動紀錄</h2>
+      <ol class="log" id="log"></ol>
+    </section>
+  </aside>
+</main>
+
+<script src="office.js"></script>
+</body>
+</html>

@@ -1,1 +1,28 @@
-# CI pipeline
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run tests
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Check the office front-end parses
+        run: node --check plugins/agent-office/web/office.js
+
+      - name: Validate plugin manifests
+        run: |
+          python3 -c "import json; json.load(open('.claude-plugin/marketplace.json'))"
+          python3 -c "import json; json.load(open('plugins/agent-office/.claude-plugin/plugin.json'))"
+          python3 -c "import json; json.load(open('plugins/agent-office/hooks/hooks.json'))"
