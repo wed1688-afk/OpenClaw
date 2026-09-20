@@ -33,6 +33,23 @@ The floor fills in as the session works. `/office state` answers in the terminal
 instead, `/office stop` closes it, and `/office demo` serves a staged shift so
 you can see a busy office without waiting for one.
 
+## No plugin manager? Use the hooks directly
+
+Some environments — Claude Code on the web among them — answer `/plugin` with
+*Plugins aren't available in this environment*. The plugin is only packaging:
+the hooks are the whole recording side and they work just as well from
+`settings.json`. Clone the repo and run:
+
+```
+python3 plugins/agent-office/scripts/office_server.py hooks --merge ~/.claude/settings.json
+python3 plugins/agent-office/scripts/office_server.py serve --open
+```
+
+The first command writes the thirteen hook entries with the paths already
+resolved (drop `--merge` to print them and paste them yourself). Hooks from
+`settings.json` apply to the running session, so the floor starts filling on
+the next tool call — no restart.
+
 ## Who goes where
 
 | What Claude Code does | Where the clerk goes |

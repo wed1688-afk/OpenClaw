@@ -359,6 +359,51 @@ def cmd_state(args):
     return 0
 
 
+def cmd_hooks(args):
+    """Print the hook block to paste into settings.json.
+
+    Some environments (Claude Code on the web, for one) have no plugin
+    manager. The hooks are the whole recording side of this plugin, and they
+    work just as well from settings.json, so print them with the paths
+    already resolved.
+    """
+    source = os.path.join(PLUGIN_ROOT, "hooks", "hooks.json")
+    with open(source, encoding="utf-8") as fh:
+        config = json.load(fh)
+
+    resolved = {}
+    for event, matchers in config["hooks"].items():
+        entries = []
+        for matcher in matchers:
+            hooks = [
+                dict(hook, command=hook["command"].replace('"${CLAUDE_PLUGIN_ROOT}"', '"%s"' % PLUGIN_ROOT))
+                for hook in matcher["hooks"]
+            ]
+            entries.append(dict(matcher, hooks=hooks))
+        resolved[event] = entries
+
+    if args.merge:
+        target = os.path.expanduser(args.merge)
+        existing = {}
+        if os.path.exists(target):
+            try:
+                with open(target, encoding="utf-8") as fh:
+                    existing = json.load(fh)
+            except ValueError:
+                print("{} is not valid JSON; not touching it.".format(target))
+                return 1
+        existing["hooks"] = dict(existing.get("hooks") or {}, **resolved)
+        with open(target, "w", encoding="utf-8") as fh:
+            json.dump(existing, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        print("Wrote {} hook events into {}".format(len(resolved), target))
+        print("Start a new session (or run /reload-plugins) and the clerks clock in.")
+        return 0
+
+    print(json.dumps({"hooks": resolved}, indent=2))
+    return 0
+
+
 def cmd_demo(args):
     home = os.environ.get("AGENT_OFFICE_HOME") or os.path.join(office_paths.home(), "demo")
     os.environ["AGENT_OFFICE_HOME"] = home
@@ -393,6 +438,11 @@ def build_parser():
 
     stop = sub.add_parser("stop", help="close the office")
     stop.set_defaults(func=cmd_stop)
+
+    hooks = sub.add_parser("hooks", help="print the settings.json hook block (no plugin manager needed)")
+    hooks.add_argument("--merge", metavar="FILE", default=None,
+                       help="merge the hooks into this settings file instead of printing them")
+    hooks.set_defaults(func=cmd_hooks)
 
     state = sub.add_parser("state", help="print the current floor plan")
     state.add_argument("--days", type=int, default=1)

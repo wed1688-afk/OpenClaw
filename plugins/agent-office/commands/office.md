@@ -32,4 +32,7 @@ Notes worth passing on when relevant:
   under `~/.claude/agent-office`.
 - Answer the user in whichever language they are writing in.
 
+- If the user's environment has no plugin manager, `hooks --merge
+  ~/.claude/settings.json` installs the recording side without one.
+
 Do not edit plugin files as part of this command unless the user asks.

@@ -542,6 +542,44 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(hook_path, shell_path)
 
 
+class SettingsHooksTests(unittest.TestCase):
+    """The hook block for environments with no plugin manager."""
+
+    def emit(self, *extra):
+        import subprocess
+
+        script = os.path.join(PLUGIN, "scripts", "office_server.py")
+        result = subprocess.run([sys.executable, script, "hooks"] + list(extra),
+                                capture_output=True, text=True, check=True)
+        return result.stdout
+
+    def test_it_prints_every_hook_with_the_path_resolved(self):
+        config = json.loads(self.emit())["hooks"]
+        with open(os.path.join(PLUGIN, "hooks", "hooks.json")) as fh:
+            self.assertEqual(sorted(config), sorted(json.load(fh)["hooks"]))
+        command = config["PreToolUse"][0]["hooks"][0]["command"]
+        self.assertNotIn("CLAUDE_PLUGIN_ROOT", command)
+        self.assertIn(PLUGIN, command)
+
+    def test_merging_keeps_whatever_was_already_in_the_file(self):
+        target = os.path.join(tempfile.mkdtemp(), "settings.json")
+        with open(target, "w") as fh:
+            json.dump({"model": "opus", "hooks": {"Stop": [{"matcher": "*", "hooks": []}]}}, fh)
+        self.emit("--merge", target)
+        with open(target) as fh:
+            merged = json.load(fh)
+        self.assertEqual(merged["model"], "opus")
+        self.assertIn("PreToolUse", merged["hooks"])
+        self.assertIn("Stop", merged["hooks"])
+
+    def test_merging_into_a_missing_file_creates_it(self):
+        target = os.path.join(tempfile.mkdtemp(), "nested", "settings.json")
+        os.makedirs(os.path.dirname(target))
+        self.emit("--merge", target)
+        with open(target) as fh:
+            self.assertIn("SessionStart", json.load(fh)["hooks"])
+
+
 class ManifestTests(unittest.TestCase):
     def test_marketplace_points_at_the_plugin(self):
         with open(os.path.join(REPO, ".claude-plugin", "marketplace.json")) as fh:
