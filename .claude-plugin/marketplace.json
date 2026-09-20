@@ -1,5 +1,6 @@
 {
   "name": "openclaw",
+  "description": "Plugins from the OpenClaw workspace, starting with a live view of what Claude Code is doing.",
   "owner": {
     "name": "OpenClaw",
     "url": "https://github.com/wed1688-afk/openclaw"

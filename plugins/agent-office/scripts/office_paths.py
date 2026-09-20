@@ -5,9 +5,16 @@ Everything lives under a single directory, by default `~/.claude/agent-office`:
     events/2026-09-20.jsonl   one append-only ledger per day
     server.json               pid/port of the running office server
 
-Override with `AGENT_OFFICE_HOME`.  When Claude Code runs the hooks it also
-exports `CLAUDE_PLUGIN_DATA`, which survives plugin updates, so that is
-preferred over the fallback when present.
+Override with `AGENT_OFFICE_HOME`.
+
+The path must be the same for the recorder and the server, and those run in
+very different processes: the recorder is a hook, which Claude Code gives
+`CLAUDE_PLUGIN_DATA`, while the server is started from an ordinary shell,
+which is given no such thing.  Keying off that variable therefore splits the
+two apart -- the hooks write to the plugin data directory and the office reads
+an empty one -- so this deliberately ignores it and uses a location any process
+can work out on its own.  It sits outside the plugin, so plugin updates leave
+it alone either way.
 """
 
 from __future__ import annotations
@@ -22,9 +29,6 @@ def home():
     override = os.environ.get("AGENT_OFFICE_HOME")
     if override:
         return os.path.abspath(os.path.expanduser(override))
-    plugin_data = os.environ.get("CLAUDE_PLUGIN_DATA")
-    if plugin_data:
-        return os.path.join(os.path.abspath(os.path.expanduser(plugin_data)), "office")
     return os.path.join(os.path.expanduser("~"), ".claude", "agent-office")
 
 

@@ -124,7 +124,7 @@ removes the hooks with it.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `AGENT_OFFICE_HOME` | `${CLAUDE_PLUGIN_DATA}/office`, else `~/.claude/agent-office` | Where the ledger lives |
+| `AGENT_OFFICE_HOME` | `~/.claude/agent-office` | Where the ledger lives |
 | `AGENT_OFFICE_PORT` | `4269` | Preferred port; the server tries the next 20 if it is taken |
 | `AGENT_OFFICE_VERBOSE` | unset | Log HTTP requests to stderr |
 | `AGENT_OFFICE_LANG` | `zh-Hant` | Language for the view (`zh-Hant`, `en`) |
@@ -143,6 +143,13 @@ event, both languages (including that no phrase the code uses is missing from a
 language, and that a pre-v2 ledger still reads), the ledger's append/tail
 behaviour (including corrupt and half-written lines), and the manifests. `office_server.py state --brief` prints the floor as
 text, which is the quickest way to check what the hooks are recording.
+
+The recorder and the server have to agree on that directory, and they run in
+very different processes: the recorder is a hook, which Claude Code hands
+`CLAUDE_PLUGIN_DATA`, while the server is started from an ordinary shell, which
+gets no such variable. So the location is deliberately computed from `$HOME`
+alone — keying it off the plugin data directory would have the hooks writing
+where the office never looks, and the floor would stay empty forever.
 
 ## Limits
 

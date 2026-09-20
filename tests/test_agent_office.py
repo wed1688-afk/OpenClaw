@@ -511,14 +511,35 @@ class LedgerTests(unittest.TestCase):
         office_paths.prune(keep_days=2)
         self.assertEqual(len(os.listdir(office_paths.events_dir())), 2)
 
-    def test_home_prefers_the_plugin_data_directory(self):
+    def test_home_ignores_the_plugin_data_directory(self):
+        """The recorder is a hook and gets CLAUDE_PLUGIN_DATA; the server is
+        started from a shell and does not. Keying off it would send the two to
+        different directories and the office would always look empty."""
         os.environ.pop("AGENT_OFFICE_HOME")
         os.environ["CLAUDE_PLUGIN_DATA"] = self.tmp.name
         self.addCleanup(lambda: os.environ.pop("CLAUDE_PLUGIN_DATA", None))
         try:
-            self.assertEqual(office_paths.home(), os.path.join(self.tmp.name, "office"))
+            expected = os.path.join(os.path.expanduser("~"), ".claude", "agent-office")
+            self.assertEqual(office_paths.home(), expected)
         finally:
             os.environ["AGENT_OFFICE_HOME"] = self.tmp.name
+
+    def test_the_recorder_and_the_server_agree_on_one_directory(self):
+        """Whatever the environment, both sides must resolve the same path."""
+        import subprocess
+
+        script = (
+            "import sys; sys.path.insert(0, %r); import office_paths; print(office_paths.events_dir())"
+            % os.path.join(PLUGIN, "scripts")
+        )
+        env = dict(os.environ)
+        env.pop("AGENT_OFFICE_HOME", None)
+        as_hook = dict(env, CLAUDE_PLUGIN_DATA="/tmp/some-plugin-data")
+        hook_path = subprocess.run([sys.executable, "-c", script], env=as_hook,
+                                   capture_output=True, text=True, check=True).stdout.strip()
+        shell_path = subprocess.run([sys.executable, "-c", script], env=env,
+                                    capture_output=True, text=True, check=True).stdout.strip()
+        self.assertEqual(hook_path, shell_path)
 
 
 class ManifestTests(unittest.TestCase):

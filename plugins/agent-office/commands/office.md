@@ -29,7 +29,7 @@ Notes worth passing on when relevant:
 - The floor only fills up once the plugin's hooks have fired, so a brand-new
   session looks quiet until the first tool call.
 - Nothing leaves the machine: the server binds `127.0.0.1` and the ledger lives
-  under `~/.claude/agent-office` (or `${CLAUDE_PLUGIN_DATA}`).
+  under `~/.claude/agent-office`.
 - Answer the user in whichever language they are writing in.
 
 Do not edit plugin files as part of this command unless the user asks.
