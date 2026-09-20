@@ -36,6 +36,7 @@
       empty: "辦公室現在沒有人。在 Claude Code 跑點東西，職員就會上工；或用 demo 模式看一場排演的班。",
       badge: { working: "工作中", waiting: "等簽名", blocked: "卡住了", arriving: "新人報到", gone: "下班中" },
       ticket: { open: "未結", done: "已交件", empty: "（沒有內容）" },
+      puff: { done: "完成", arrive: "報到", error: "！" },
       busyTitle: function (n) { return "Agent Office — " + n + " 人忙碌中"; },
       clock: function (s) {
         if (s < 60) return s + " 秒";
@@ -53,6 +54,7 @@
       empty: "The office is empty. Run anything in Claude Code and the clerks will clock in, or start the server with demo to watch a staged shift.",
       badge: { working: "working", waiting: "signature?", blocked: "snag", arriving: "new hire", gone: "clocking out" },
       ticket: { open: "open", done: "delivered", empty: "(no text)" },
+      puff: { done: "done", arrive: "hired", error: "!" },
       busyTitle: function (n) { return "Agent Office — " + n + " busy"; },
       clock: function (s) {
         if (s < 60) return s + "s";
@@ -517,10 +519,10 @@
       if (entry.id <= lastLogId) return;
       var sprite = null;
       sprites.forEach(function (candidate) { if (candidate.name === entry.worker) sprite = candidate; });
-      if (sprite && (entry.kind === "done" || entry.kind === "error" || entry.kind === "arrive")) {
+      if (sprite && ui().puff[entry.kind]) {
         puffs.push({
           x: sprite.x, y: sprite.y, life: 1,
-          text: entry.kind === "error" ? "!" : entry.kind === "arrive" ? "hired" : "done",
+          text: ui().puff[entry.kind],
           color: entry.kind === "error" ? theme.bad : entry.kind === "arrive" ? theme.accent : theme.ok
         });
       }

@@ -568,6 +568,20 @@ class ManifestTests(unittest.TestCase):
         for code in office_text.LOCALES:
             self.assertIn(code, page, "the page has no chrome strings for %s" % code)
 
+    def test_no_label_is_written_into_the_drawing_code(self):
+        """Chrome words belong in the phrase table, not in the canvas code.
+
+        Only the code below the table is scanned -- the English table is
+        supposed to contain English.
+        """
+        page = read_page()
+        code = page[page.index("var locale ="):]
+        # Display-only wording. Status and kind values like "working" or
+        # "done" are data from the server and are compared, not shown.
+        for stray in ('"signature?"', '"new hire"', '"clocking out"', '"hired"',
+                      '"delivered"', '"(no text)"'):
+            self.assertNotIn(stray, code, "%s should come from the phrase table" % stray)
+
     def test_the_page_does_not_hardcode_room_names(self):
         """Room names come from the snapshot so they follow the language."""
         page = read_page()

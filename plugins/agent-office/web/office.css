@@ -35,7 +35,23 @@
   }
 }
 
+/* An explicit light choice has to win on a dark system too. */
+:root[data-theme="light"] {
+  --bg: #f4f6fa;
+  --bg-soft: #ffffff;
+  --panel: #ffffff;
+  --line: #dfe4ec;
+  --ink: #1b2430;
+  --ink-dim: #52607a;
+  --ink-faint: #8b98ad;
+  --floor-a: #e7ecf4;
+  --floor-b: #dde4ee;
+  --wall: #cdd6e4;
+}
+
 * { box-sizing: border-box; }
+
+html { height: 100%; }
 
 body {
   margin: 0;
@@ -43,7 +59,7 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-size: 14px;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
