@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "agent-office",
+  "displayName": "Agent Office",
+  "version": "0.1.0",
+  "description": "Visualizes the work Claude Code is doing as a team of agents working in an office. Hooks record every session, prompt, tool call and subagent; a local server renders them as clerks walking between the records room, drafting table, server room and mail room.",
+  "author": {
+    "name": "OpenClaw"
+  },
+  "repository": "https://github.com/wed1688-afk/openclaw",
+  "license": "MIT",
+  "keywords": ["visualization", "observability", "hooks", "agents", "dashboard"]
+}

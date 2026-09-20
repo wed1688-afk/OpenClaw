@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Office</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#127970;</text></svg>">
+<link rel="stylesheet" href="office.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <h1>Agent Office</h1>
+    <span class="sub">what Claude Code is doing, as a floor of clerks</span>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="controls">
+    <span class="conn" id="conn" data-state="connecting">connecting</span>
+    <button type="button" id="reset-view" title="Re-centre the floor">Re-centre</button>
+  </div>
+</header>
+
+<main>
+  <section class="floor">
+    <canvas id="office" aria-label="An isometric office floor where each clerk is an agent at work"></canvas>
+    <p class="empty" id="empty" hidden>
+      The office is empty. Run anything in Claude Code and the clerks will clock in &mdash;
+      or start the server with <code>demo</code> to watch a staged shift.
+    </p>
+    <ul class="legend" id="legend"></ul>
+  </section>
+
+  <aside class="panels">
+    <section class="panel">
+      <h2>On the floor <span class="count" id="roster-count"></span></h2>
+      <ul class="roster" id="roster"></ul>
+    </section>
+    <section class="panel">
+      <h2>Job board</h2>
+      <ul class="tickets" id="tickets"></ul>
+    </section>
+    <section class="panel grow">
+      <h2>Activity</h2>
+      <ol class="log" id="log"></ol>
+    </section>
+  </aside>
+</main>
+
+<script src="office.js"></script>
+</body>
+</html>

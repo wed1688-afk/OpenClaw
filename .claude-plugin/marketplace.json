@@ -1,0 +1,16 @@
+{
+  "name": "openclaw",
+  "owner": {
+    "name": "OpenClaw",
+    "url": "https://github.com/wed1688-afk/openclaw"
+  },
+  "plugins": [
+    {
+      "name": "agent-office",
+      "source": "./plugins/agent-office",
+      "description": "Watch Claude Code work as a live isometric office: every tool call is a clerk at a workstation, every subagent is a new hire at a desk.",
+      "version": "0.1.0",
+      "displayName": "Agent Office"
+    }
+  ]
+}
