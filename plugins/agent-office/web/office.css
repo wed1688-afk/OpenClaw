@@ -16,7 +16,8 @@
   --wall: #232e3d;
   --radius: 10px;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
 }
 
 @media (prefers-color-scheme: light) {
@@ -77,6 +78,12 @@ body {
 .chip[data-tone="busy"] b { color: var(--accent); }
 
 .controls { display: flex; align-items: center; gap: 10px; }
+select {
+  font: inherit; font-size: 12px; color: var(--ink-dim);
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 4px 6px; cursor: pointer;
+}
+select:hover { color: var(--ink); border-color: var(--ink-faint); }
 .conn { font-size: 12px; color: var(--ink-faint); display: inline-flex; align-items: center; gap: 6px; }
 .conn::before {
   content: ""; width: 8px; height: 8px; border-radius: 50%;

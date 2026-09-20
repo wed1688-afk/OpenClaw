@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,36 +12,34 @@
   <div class="brand">
     <span class="mark" aria-hidden="true"></span>
     <h1>Agent Office</h1>
-    <span class="sub">what Claude Code is doing, as a floor of clerks</span>
+    <span class="sub" id="t-sub">Claude Code 正在做的事，畫成一整層樓的職員</span>
   </div>
   <div class="stats" id="stats"></div>
   <div class="controls">
-    <span class="conn" id="conn" data-state="connecting">connecting</span>
-    <button type="button" id="reset-view" title="Re-centre the floor">Re-centre</button>
+    <span class="conn" id="conn" data-state="connecting">連線中…</span>
+    <select id="lang" aria-label="語言"></select>
+    <button type="button" id="reset-view">重新置中</button>
   </div>
 </header>
 
 <main>
   <section class="floor">
-    <canvas id="office" aria-label="An isometric office floor where each clerk is an agent at work"></canvas>
-    <p class="empty" id="empty" hidden>
-      The office is empty. Run anything in Claude Code and the clerks will clock in &mdash;
-      or start the server with <code>demo</code> to watch a staged shift.
-    </p>
+    <canvas id="office" aria-label="等距視角的辦公室樓面，每位職員代表一個正在工作的代理"></canvas>
+    <p class="empty" id="empty" hidden></p>
     <ul class="legend" id="legend"></ul>
   </section>
 
   <aside class="panels">
     <section class="panel">
-      <h2>On the floor <span class="count" id="roster-count"></span></h2>
+      <h2><span id="t-roster">在場人員</span> <span class="count" id="roster-count"></span></h2>
       <ul class="roster" id="roster"></ul>
     </section>
     <section class="panel">
-      <h2>Job board</h2>
+      <h2 id="t-tickets">工單板</h2>
       <ul class="tickets" id="tickets"></ul>
     </section>
     <section class="panel grow">
-      <h2>Activity</h2>
+      <h2 id="t-log">活動紀錄</h2>
       <ol class="log" id="log"></ol>
     </section>
   </aside>

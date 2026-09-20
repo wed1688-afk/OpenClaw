@@ -9,7 +9,8 @@ end to end:
 A Claude Code plugin that shows what Claude Code is doing as a floor of clerks in
 an office. Tool calls become people walking to the records room, the drafting
 table or the server room; subagents are new hires who take a desk and clock out
-when they are done.
+when they are done. The view is in Traditional Chinese by default, with English
+a selector away.
 
 ```
 /plugin marketplace add wed1688-afk/openclaw

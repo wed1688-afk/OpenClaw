@@ -2,6 +2,11 @@
 
 Watch what Claude Code is doing as a floor of clerks in an office.
 
+> **中文速覽**：這個 plugin 把 Claude Code 正在做的事畫成一間辦公室。安裝後在任何
+> session 輸入 `/office` 就會開一個本機網頁（預設 <http://127.0.0.1:4269/>）。介面
+> 預設為繁體中文，右上角可切換語言；`/office state` 則直接在終端機列出樓面狀況。
+> 所有資料都留在本機，不會外傳。
+
 Every lifecycle event becomes something physical. A `Read` sends someone to the
 records room to pull a file out of a cabinet. A `Bash` call puts them in the
 server room. A subagent is a new hire who walks in the front door, is shown to a
@@ -32,19 +37,45 @@ you can see a busy office without waiting for one.
 
 | What Claude Code does | Where the clerk goes |
 | --- | --- |
-| `Read`, `Grep`, `Glob`, `NotebookRead` | Records Room — pulling files out of cabinets |
-| `Edit`, `Write`, `NotebookEdit` | Drafting Table — marking up drawings |
-| `Bash`, `BashOutput`, `KillShell` | Server Room — racks, scripts, blinking lights |
-| `WebFetch`, `WebSearch`, MCP tools | Mail Room — anything from outside the building |
-| `Task`, `Skill`, `TodoWrite`, `Workflow` | War Room — briefing, planning, the job board |
-| `AskUserQuestion`, permission prompts | Reception — waiting on a signature |
-| Idle, between assignments | Break Room — coffee |
-| Subagent starts / stops | Front Door — arrivals and departures |
-| Everything else | Their own desk in the bullpen |
+| `Read`, `Grep`, `Glob`, `NotebookRead` | 檔案室 / Records Room — pulling files out of cabinets |
+| `Edit`, `Write`, `NotebookEdit` | 製圖桌 / Drafting Table — marking up drawings |
+| `Bash`, `BashOutput`, `KillShell` | 機房 / Server Room — racks, scripts, blinking lights |
+| `WebFetch`, `WebSearch`, MCP tools | 收發室 / Mail Room — anything from outside the building |
+| `Task`, `Skill`, `TodoWrite`, `Workflow` | 作戰室 / War Room — briefing, planning, the job board |
+| `AskUserQuestion`, permission prompts | 櫃檯 / Reception — waiting on a signature |
+| Idle, between assignments | 茶水間 / Break Room — coffee |
+| Subagent starts / stops | 大門 / Front Door — arrivals and departures |
+| Everything else | 大辦公區 / their own desk in the bullpen |
+
+Tool names stay as Claude Code writes them (`Read`, `Bash`, …) in every
+language, so what floats above a clerk's head matches what the session shows.
 
 The right-hand panels carry the same information as text: who is on the floor
 and for how long, the job board of recent prompts, and a running activity log.
 Drag to pan, scroll to zoom, **Re-centre** to reset.
+
+## Language
+
+The view ships in Traditional Chinese (`zh-Hant`) and English (`en`), and
+Chinese is the default. Pick one with the selector in the top right, or:
+
+```
+office_server.py serve --lang en          # default for the page
+office_server.py state --brief --lang en  # just this one listing
+AGENT_OFFICE_LANG=en /office              # for everything
+```
+
+`http://127.0.0.1:4269/?lang=en` works too.
+
+Wording is applied when a snapshot is rendered, not when an event is recorded:
+the ledger stores *what happened* (`{"verb": "read", "target": "main.py"}`), so
+switching language re-reads the whole history in the new one rather than leaving
+old events stranded. Chinese sets a space against Latin words and not against
+itself, so `從檔案櫃抽出 main.py` and `向新人交代彙整發現` both come out right.
+
+To add a language, add an entry to `LOCALES` in `scripts/office_text.py` and one
+to `TEXT` in `web/office.js`; the tests fail if a phrase the code uses is missing
+from any language.
 
 ## How it works
 
@@ -65,6 +96,8 @@ Claude Code hooks ──> scripts/office_recorder.py ──> ~/.claude/agent-off
 - **`scripts/office_state.py`** is the whole model: it maps tools to rooms and
   folds the event stream into a floor plan. No I/O, no dependencies, and it is
   what the tests exercise.
+- **`scripts/office_text.py`** holds every phrase, one table per language. The
+  reducer stores keys; this turns them into sentences at render time.
 - **`scripts/office_server.py`** tails the ledger incrementally (it remembers a
   byte offset per file and ignores a half-written trailing line) and pushes
   snapshots over server-sent events.
@@ -78,7 +111,7 @@ Nothing. The server binds `127.0.0.1`, serves only its own `web/` directory, and
 reads only the local ledger.
 
 What gets stored is deliberately thin: an event name, a session id, a tool name,
-and a short human description such as `pulling main.py from the cabinet`. File
+and what was done to what (`"verb": "read", "target": "main.py"`). File
 contents, tool output and full prompts are never written — prompts are clipped
 to 180 characters, and anything shaped like a credential (`token=`, `Bearer …`,
 `ghp_…`, long hex strings) is replaced with `[redacted]` before it is stored.
@@ -94,6 +127,7 @@ removes the hooks with it.
 | `AGENT_OFFICE_HOME` | `${CLAUDE_PLUGIN_DATA}/office`, else `~/.claude/agent-office` | Where the ledger lives |
 | `AGENT_OFFICE_PORT` | `4269` | Preferred port; the server tries the next 20 if it is taken |
 | `AGENT_OFFICE_VERBOSE` | unset | Log HTTP requests to stderr |
+| `AGENT_OFFICE_LANG` | `zh-Hant` | Language for the view (`zh-Hant`, `en`) |
 
 `office_server.py serve --days 2` replays more than the current day.
 
@@ -105,8 +139,9 @@ python3 plugins/agent-office/scripts/office_server.py demo --open
 ```
 
 The tests cover normalization and redaction, the reducer's handling of every
-event, the ledger's append/tail behaviour (including corrupt and half-written
-lines), and the manifests. `office_server.py state --brief` prints the floor as
+event, both languages (including that no phrase the code uses is missing from a
+language, and that a pre-v2 ledger still reads), the ledger's append/tail
+behaviour (including corrupt and half-written lines), and the manifests. `office_server.py state --brief` prints the floor as
 text, which is the quickest way to check what the hooks are recording.
 
 ## Limits

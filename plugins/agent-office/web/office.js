@@ -23,6 +23,61 @@
     door:        { anchor: [-0.5, 3.8], stand: [0.5, 4.0] }
   };
 
+  // Everything the page says for itself. Anything the office says about its
+  // own work -- room names, activities, the log -- is worded by the server and
+  // arrives in the snapshot already translated.
+  var TEXT = {
+    "zh-Hant": {
+      sub: "Claude Code 正在做的事，畫成一整層樓的職員",
+      chips: { headcount: "在場", busy: "忙碌", tools: "工具呼叫", errors: "出狀況", prompts: "工單", hires: "報到" },
+      panels: { roster: "在場人員", tickets: "工單板", log: "活動紀錄" },
+      conn: { live: "即時連線", connecting: "連線中…", offline: "已斷線" },
+      recentre: "重新置中",
+      empty: "辦公室現在沒有人。在 Claude Code 跑點東西，職員就會上工；或用 demo 模式看一場排演的班。",
+      badge: { working: "工作中", waiting: "等簽名", blocked: "卡住了", arriving: "新人報到", gone: "下班中" },
+      ticket: { open: "未結", done: "已交件", empty: "（沒有內容）" },
+      busyTitle: function (n) { return "Agent Office — " + n + " 人忙碌中"; },
+      clock: function (s) {
+        if (s < 60) return s + " 秒";
+        var m = Math.floor(s / 60);
+        if (m < 60) return m + " 分 " + String(s % 60).padStart(2, "0") + " 秒";
+        return Math.floor(m / 60) + " 時 " + String(m % 60).padStart(2, "0") + " 分";
+      }
+    },
+    en: {
+      sub: "what Claude Code is doing, as a floor of clerks",
+      chips: { headcount: "on the floor", busy: "busy", tools: "tool calls", errors: "snags", prompts: "work orders", hires: "hires" },
+      panels: { roster: "On the floor", tickets: "Job board", log: "Activity" },
+      conn: { live: "live", connecting: "connecting", offline: "offline" },
+      recentre: "Re-centre",
+      empty: "The office is empty. Run anything in Claude Code and the clerks will clock in, or start the server with demo to watch a staged shift.",
+      badge: { working: "working", waiting: "signature?", blocked: "snag", arriving: "new hire", gone: "clocking out" },
+      ticket: { open: "open", done: "delivered", empty: "(no text)" },
+      busyTitle: function (n) { return "Agent Office — " + n + " busy"; },
+      clock: function (s) {
+        if (s < 60) return s + "s";
+        var m = Math.floor(s / 60);
+        if (m < 60) return m + "m " + String(s % 60).padStart(2, "0") + "s";
+        return Math.floor(m / 60) + "h " + String(m % 60).padStart(2, "0") + "m";
+      }
+    }
+  };
+
+  // The language this page is asking for, forwarded to every API call so the
+  // server words the snapshot to match the chrome.
+  var LANG_PARAM = new URLSearchParams(location.search).get("lang");
+  var locale = (LANG_PARAM && TEXT[LANG_PARAM]) ? LANG_PARAM
+    : (TEXT[document.documentElement.lang] ? document.documentElement.lang : "zh-Hant");
+
+  // Named `ui`, not `t`: `t` is the animation clock in the drawing code.
+  function ui() { return TEXT[locale] || TEXT["zh-Hant"]; }
+
+  function api(path) {
+    return LANG_PARAM ? path + "?lang=" + encodeURIComponent(LANG_PARAM) : path;
+  }
+
+  var CANVAS_FONT = 'ui-sans-serif, system-ui, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif';
+
   var ROLE_COLORS = {
     lead: "#f0b429",
     Explore: "#2dd4bf",
@@ -115,7 +170,7 @@
   function label(gx, gy, text, color, size, gz) {
     var p = project(gx, gy, gz || 0);
     ctx.fillStyle = color;
-    ctx.font = "600 " + (size || 10) + "px ui-sans-serif, system-ui, sans-serif";
+    ctx.font = "600 " + (size || 10) + "px " + CANVAS_FONT;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, p.x, p.y);
@@ -256,23 +311,19 @@
     Object.keys(STATIONS).forEach(function (name) {
       if (name === "door") return;
       var anchor = STATIONS[name].anchor;
-      var occupied = snapshot && snapshot.stations && snapshot.stations[name]
-        && snapshot.stations[name].occupants.length;
+      var room = snapshot && snapshot.stations && snapshot.stations[name];
+      if (!room) return;  // nothing to name until the first snapshot lands
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.55)";
       ctx.shadowBlur = 5;
       label(anchor[0] + 0.6, anchor[1] + (LABEL_SPAN[name] === undefined ? 0.4 : LABEL_SPAN[name]),
-        (OFFICE_LABELS[name] || name).toUpperCase(),
-        occupied ? theme["ink-dim"] : theme["ink-faint"], 9.5, LABEL_Z[name] || 1.5);
+        room.label, room.occupants.length ? theme["ink-dim"] : theme["ink-faint"],
+        10.5, LABEL_Z[name] || 1.5);
       ctx.restore();
     });
   }
 
-  var OFFICE_LABELS = {
-    desk: "Bullpen", records: "Records", drafting: "Drafting", server_room: "Server Room",
-    mailroom: "Mail Room", war_room: "War Room", reception: "Reception",
-    break_room: "Break Room", door: "Front Door"
-  };
+
 
   function drawDesk(index, sprite) {
     var spot = deskSpot(index);
@@ -347,7 +398,7 @@
     badge(sprite, p.x, baseY - 52, t);
 
     ctx.fillStyle = theme["ink-dim"];
-    ctx.font = "600 10px ui-sans-serif, system-ui, sans-serif";
+    ctx.font = "600 10px " + CANVAS_FONT;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText(sprite.name, p.x, p.y + 6);
@@ -378,14 +429,12 @@
   }
 
   function badge(sprite, x, y, t) {
+    var words = ui().badge;
     var text = "";
-    if (sprite.status === "working") text = sprite.tool || "working";
-    else if (sprite.status === "waiting") text = "signature?";
-    else if (sprite.status === "blocked") text = "snag";
-    else if (sprite.status === "arriving") text = "new hire";
-    else if (sprite.status === "gone") text = "clocking out";
+    if (sprite.status === "working") text = sprite.tool || words.working;
+    else if (words[sprite.status]) text = words[sprite.status];
     if (!text) return;
-    ctx.font = "600 10px ui-sans-serif, system-ui, sans-serif";
+    ctx.font = "600 10px " + CANVAS_FONT;
     var width = ctx.measureText(text).width + 12;
     var tone = sprite.status === "blocked" ? theme.bad : sprite.status === "waiting" ? theme.warn : shade(sprite.color, -0.1);
     ctx.globalAlpha = sprite.alpha * 0.95;
@@ -542,7 +591,7 @@
       ctx.save();
       ctx.globalAlpha = Math.max(0, puff.life);
       ctx.fillStyle = puff.color;
-      ctx.font = "700 11px ui-sans-serif, system-ui, sans-serif";
+      ctx.font = "700 11px " + CANVAS_FONT;
       ctx.textAlign = "center";
       ctx.fillText(puff.text, p.x, p.y - 58 - (1 - puff.life) * 26);
       ctx.restore();
@@ -562,6 +611,12 @@
 
   // ---------------------------------------------------------------- panels
   var el = {
+    sub: document.getElementById("t-sub"),
+    rosterHeading: document.getElementById("t-roster"),
+    ticketsHeading: document.getElementById("t-tickets"),
+    logHeading: document.getElementById("t-log"),
+    lang: document.getElementById("lang"),
+    recentre: document.getElementById("reset-view"),
     stats: document.getElementById("stats"),
     roster: document.getElementById("roster"),
     rosterCount: document.getElementById("roster-count"),
@@ -573,11 +628,7 @@
   };
 
   function clock(seconds) {
-    seconds = Math.max(0, Math.round(seconds));
-    if (seconds < 60) return seconds + "s";
-    var mins = Math.floor(seconds / 60);
-    if (mins < 60) return mins + "m " + String(seconds % 60).padStart(2, "0") + "s";
-    return Math.floor(mins / 60) + "h " + String(mins % 60).padStart(2, "0") + "m";
+    return ui().clock(Math.max(0, Math.round(seconds)));
   }
 
   function timeOf(ts) {
@@ -594,20 +645,61 @@
     return li;
   }
 
+  function applyChrome() {
+    var words = ui();
+    document.documentElement.lang = locale;
+    el.sub.textContent = words.sub;
+    el.rosterHeading.textContent = words.panels.roster;
+    el.ticketsHeading.textContent = words.panels.tickets;
+    el.logHeading.textContent = words.panels.log;
+    el.recentre.textContent = words.recentre;
+    el.empty.textContent = words.empty;
+    el.conn.textContent = words.conn[el.conn.dataset.state] || el.conn.dataset.state;
+  }
+
+  function syncLanguages(state) {
+    if (state.locale && state.locale !== locale && TEXT[state.locale]) {
+      locale = state.locale;
+      applyChrome();
+    }
+    var options = state.locales || [];
+    if (!options.length || el.lang.dataset.filled === String(options.length)) {
+      el.lang.value = state.locale || locale;
+      return;
+    }
+    el.lang.replaceChildren.apply(el.lang, options.map(function (item) {
+      var option = document.createElement("option");
+      option.value = item.code;
+      option.textContent = item.name;
+      return option;
+    }));
+    el.lang.dataset.filled = String(options.length);
+    el.lang.value = state.locale || locale;
+  }
+
+  el.lang.addEventListener("change", function () {
+    // A reload is the honest way to switch: the server words the whole
+    // snapshot, so everything -- including history -- comes back translated.
+    location.search = "?lang=" + encodeURIComponent(el.lang.value);
+  });
+
   function renderPanels(state) {
+    syncLanguages(state);
     var stats = state.stats || {};
+    var words = ui();
     el.stats.replaceChildren(
-      chip("on the floor", stats.headcount || 0),
-      chip("busy", stats.busy || 0, stats.busy ? "busy" : null),
-      chip("tool calls", stats.tool_calls || 0),
-      chip("snags", stats.errors || 0, stats.errors ? "bad" : null),
-      chip("work orders", stats.prompts || 0),
-      chip("hires", stats.hires || 0)
+      chip(words.chips.headcount, stats.headcount || 0),
+      chip(words.chips.busy, stats.busy || 0, stats.busy ? "busy" : null),
+      chip(words.chips.tools, stats.tool_calls || 0),
+      chip(words.chips.errors, stats.errors || 0, stats.errors ? "bad" : null),
+      chip(words.chips.prompts, stats.prompts || 0),
+      chip(words.chips.hires, stats.hires || 0)
     );
-    document.title = stats.busy ? "Agent Office — " + stats.busy + " busy" : "Agent Office";
+    document.title = stats.busy ? words.busyTitle(stats.busy) : "Agent Office";
 
     var workers = state.workers || [];
     el.empty.hidden = workers.length > 0;
+    if (!el.empty.hidden && !el.empty.textContent) el.empty.textContent = words.empty;
     el.rosterCount.textContent = workers.length ? workers.length : "";
     el.roster.replaceChildren.apply(el.roster, workers.map(function (worker) {
       var li = document.createElement("li");
@@ -641,9 +733,10 @@
       var li = document.createElement("li");
       li.dataset.status = ticket.status;
       var when = document.createElement("time");
-      when.textContent = timeOf(ticket.ts) + (ticket.status === "open" ? " · open" : " · delivered");
+      when.textContent = timeOf(ticket.ts) + " · " +
+        (ticket.status === "open" ? words.ticket.open : words.ticket.done);
       var text = document.createElement("span");
-      text.textContent = ticket.text || "(no text)";
+      text.textContent = ticket.text || words.ticket.empty;
       li.append(when, text);
       return li;
     }));
@@ -686,11 +779,14 @@
   }, 1000);
 
   // ------------------------------------------------------------ connection
-  function setConn(state) { el.conn.dataset.state = state; el.conn.textContent = state; }
+  function setConn(state) {
+    el.conn.dataset.state = state;
+    el.conn.textContent = ui().conn[state] || state;
+  }
 
   var pollTimer = null;
   function poll() {
-    fetch("/api/state", { cache: "no-store" })
+    fetch(api("/api/state"), { cache: "no-store" })
       .then(function (r) { return r.json(); })
       .then(applySnapshot)
       .catch(function () { setConn("offline"); });
@@ -698,7 +794,7 @@
 
   function connect() {
     setConn("connecting");
-    var source = new EventSource("/api/stream");
+    var source = new EventSource(api("/api/stream"));
     source.addEventListener("state", function (event) {
       setConn("live");
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
@@ -737,6 +833,7 @@
 
   // ------------------------------------------------------------------ boot
   readTheme();
+  applyChrome();
   resize();
   window.addEventListener("resize", resize);
   if (window.matchMedia) {

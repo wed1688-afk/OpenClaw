@@ -22,11 +22,13 @@ import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import office_paths  # noqa: E402
 import office_state  # noqa: E402
+import office_text  # noqa: E402
 
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_ROOT = os.path.join(PLUGIN_ROOT, "web")
@@ -94,9 +96,9 @@ class Ledger:
                 self.revision += 1
         return applied
 
-    def snapshot(self):
+    def snapshot(self, locale=None):
         with self.lock:
-            state = self.office.snapshot()
+            state = self.office.snapshot(locale=locale)
             state["revision"] = self.revision
             state["home"] = office_paths.home()
             state["days"] = self.days
@@ -149,20 +151,26 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- routes ----------------------------------------------------------
 
+    def _locale(self):
+        query = parse_qs(urlparse(self.path).query)
+        requested = (query.get("lang") or [None])[0]
+        return office_text.normalize_locale(requested)
+
     def do_GET(self):  # noqa: N802  (http.server API)
-        path = self.path.split("?", 1)[0]
+        path = urlparse(self.path).path
         if path in ("/", "/index.html"):
             return self._send_file("index.html")
         if path == "/api/health":
             return self._send_json({"ok": True, "pid": os.getpid(), "home": office_paths.home()})
         if path == "/api/state":
             self.ledger.refresh()
-            return self._send_json(self.ledger.snapshot())
+            return self._send_json(self.ledger.snapshot(locale=self._locale()))
         if path == "/api/stream":
             return self._stream()
         return self._send_file(path.lstrip("/"))
 
     def _stream(self):
+        locale = self._locale()
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
@@ -174,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             while not self.server.stopping:
                 self.ledger.refresh()
-                state = self.ledger.snapshot()
+                state = self.ledger.snapshot(locale=locale)
                 now = time.time()
                 changed = state["revision"] != last_revision
                 if changed or now - last_push >= FORCE_PUSH_SECONDS:
@@ -262,6 +270,8 @@ def cmd_serve(args):
         print("The office is already open at {} (pid {}).".format(existing.get("url"), existing.get("pid")))
         return 0
 
+    if getattr(args, "lang", None):
+        os.environ["AGENT_OFFICE_LANG"] = office_text.normalize_locale(args.lang)
     office_paths.ensure_dirs()
     Handler.ledger = Ledger(days=args.days)
     httpd, port = bind(args.port)
@@ -324,17 +334,26 @@ def cmd_stop(args):
     return 0
 
 
+def _pad(text, width):
+    """Pad to a visual width, counting wide CJK glyphs as two columns."""
+    import unicodedata
+
+    shown = sum(2 if unicodedata.east_asian_width(ch) in "WF" else 1 for ch in str(text))
+    return str(text) + " " * max(0, width - shown)
+
+
 def cmd_state(args):
     ledger = Ledger(days=args.days)
-    state = ledger.snapshot()
+    state = ledger.snapshot(locale=getattr(args, "lang", None))
     if args.brief:
         stats = state["stats"]
         workers = [w for w in state["workers"] if w["status"] != "gone"]
         print("headcount {} | busy {} | tool calls {} | errors {} | tickets {}".format(
             stats["headcount"], stats["busy"], stats["tool_calls"], stats["errors"], len(state["tickets"])))
         for worker in workers:
-            print("  {:<8} {:<14} {:<12} {}".format(
-                worker["name"], worker["title"], worker["station"], worker["activity"]))
+            print("  {} {} {} {}".format(
+                _pad(worker["name"], 10), _pad(worker["title"], 12),
+                _pad(worker["station"], 12), worker["activity"]))
     else:
         print(json.dumps(state, ensure_ascii=False, indent=2))
     return 0
@@ -359,6 +378,7 @@ def build_parser():
         p.add_argument("--port", type=int, default=DEFAULT_PORT, help="port to bind (default %(default)s)")
         p.add_argument("--days", type=int, default=1, help="how many days of ledger to replay")
         p.add_argument("--open", action="store_true", help="open a browser once the server is up")
+        p.add_argument("--lang", default=None, help="default language for the view (zh-Hant, en)")
 
     serve = sub.add_parser("serve", help="run the office server (default)")
     add_serve_args(serve)
@@ -377,6 +397,7 @@ def build_parser():
     state = sub.add_parser("state", help="print the current floor plan")
     state.add_argument("--days", type=int, default=1)
     state.add_argument("--brief", action="store_true", help="one line per worker instead of JSON")
+    state.add_argument("--lang", default=None, help="language to word the floor in (zh-Hant, en)")
     state.set_defaults(func=cmd_state)
     return parser
 
